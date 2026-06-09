@@ -106,6 +106,11 @@ def upsert(df: pd.DataFrame, tabla: str, cols_update: list, dry_run: bool = Fals
     for inicio in range(0, len(df), CHUNKSIZE_CARGA):
         chunk = df.iloc[inicio: inicio + CHUNKSIZE_CARGA]
         registros = chunk.where(pd.notna(chunk), None).to_dict("records")
+        registros = [
+            {k: v.to_pydatetime() if isinstance(v, pd.Timestamp) else v
+             for k, v in r.items()}
+            for r in registros
+        ]
 
         stmt = mysql_insert(tbl).values(registros)
         update_dict = {c: stmt.inserted[c] for c in cols_update if c in tbl.c}
