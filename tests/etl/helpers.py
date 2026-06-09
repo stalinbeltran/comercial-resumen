@@ -50,6 +50,7 @@ FACTURA_BASE = dict(
 )
 
 DETALLE_BASE = dict(
+    id_detalle_orig=1,
     id_factura=1, numero_factura="F-001",
     fecha_emision="2026-01-15", id_sucursal=1, estado_factura="pagada",
     id_producto=1, codigo_producto="P001", nombre_producto="Laptop",
@@ -114,10 +115,10 @@ def insertar_d_facturas(engine, filas: list[dict]) -> None:
 def insertar_d_detalle(engine, filas: list[dict]) -> None:
     sql = text(
         "INSERT INTO d_facturas_detalle "
-        "(id, id_factura, numero_factura, fecha_emision, id_sucursal, estado_factura, "
+        "(id, id_detalle_orig, id_factura, numero_factura, fecha_emision, id_sucursal, estado_factura, "
         " id_producto, codigo_producto, nombre_producto, id_categoria, categoria, "
         " cantidad, subtotal, costo_unitario) "
-        "VALUES (:id, :id_factura, :numero_factura, :fecha_emision, :id_sucursal, :estado_factura, "
+        "VALUES (:id, :id_detalle_orig, :id_factura, :numero_factura, :fecha_emision, :id_sucursal, :estado_factura, "
         "        :id_producto, :codigo_producto, :nombre_producto, :id_categoria, :categoria, "
         "        :cantidad, :subtotal, :costo_unitario)"
     )

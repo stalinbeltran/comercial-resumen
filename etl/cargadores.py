@@ -30,9 +30,6 @@ CHUNKSIZE_CARGA = 5_000
 
 def truncar_y_cargar(df: pd.DataFrame, tabla: str, dry_run: bool = False) -> int:
     """TRUNCATE + INSERT. Idempotente. Para tablas tipo snapshot (r_inventario)."""
-    if df.empty:
-        log.info("[%s] DataFrame vacío, carga omitida", tabla)
-        return 0
     if dry_run:
         log.info("[%s] DRY-RUN: %d filas listas (no se escribe)", tabla, len(df))
         return len(df)
@@ -41,6 +38,10 @@ def truncar_y_cargar(df: pd.DataFrame, tabla: str, dry_run: bool = False) -> int
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
         conn.execute(text(f"TRUNCATE TABLE {tabla}"))
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+
+    if df.empty:
+        log.info("[%s] DataFrame vacío, destino truncado", tabla)
+        return 0
 
     df.to_sql(
         tabla, engine_resumen,

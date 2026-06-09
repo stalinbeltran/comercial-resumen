@@ -11,6 +11,7 @@ from tests.etl.helpers import (
     DETALLE_BASE,
 )
 
+
 pytestmark = pytest.mark.pipeline
 
 
@@ -82,10 +83,12 @@ class TestFacturasDetalleIncremental:
 
     def test_acumula_sin_truncar_en_sucesivas_corridas(self, engine_src, engine_dst, patch_engines):
         insertar_d_detalle(engine_src, [{**DETALLE_BASE, "id": 1}])
+        forzar_updated_at(engine_src, "d_facturas_detalle", 1, "2026-01-15 10:00:00")
         _proc_facturas_detalle(dry_run=False)
         assert contar(engine_dst, "r_facturas_detalle") == 1
 
         insertar_d_detalle(engine_src, [{**DETALLE_BASE, "id": 2}])
+        forzar_updated_at(engine_src, "d_facturas_detalle", 2, "2030-01-01 00:00:00")
         _proc_facturas_detalle(dry_run=False)
         assert contar(engine_dst, "r_facturas_detalle") == 2
 

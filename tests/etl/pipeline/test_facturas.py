@@ -57,7 +57,7 @@ class TestFacturasUpsert:
 
         with engine_src.begin() as conn:
             conn.execute(text(
-                "UPDATE d_facturas SET saldo = 0.00, updated_at = NOW() WHERE id = 1"
+                "UPDATE d_facturas SET saldo = 0.00, updated_at = '2030-01-01 00:00:00' WHERE id = 1"
             ))
         _proc_facturas(dry_run=False)
 
@@ -76,7 +76,7 @@ class TestFacturasUpsert:
 
         with engine_src.begin() as conn:
             conn.execute(text(
-                "UPDATE d_facturas SET estado = 'pagada', updated_at = NOW() WHERE id = 1"
+                "UPDATE d_facturas SET estado = 'pagada', updated_at = '2030-01-01 00:00:00' WHERE id = 1"
             ))
         _proc_facturas(dry_run=False)
 

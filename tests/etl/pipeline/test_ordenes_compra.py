@@ -52,7 +52,7 @@ class TestOrdenesCompraUpsert:
 
         with engine_src.begin() as conn:
             conn.execute(text(
-                "UPDATE d_ordenes_compra SET estado = 'recibida', updated_at = NOW() WHERE id = 1"
+                "UPDATE d_ordenes_compra SET estado = 'recibida', updated_at = '2030-01-01 00:00:00' WHERE id = 1"
             ))
         _proc_ordenes_compra(dry_run=False)
 
@@ -66,7 +66,7 @@ class TestOrdenesCompraUpsert:
 
         with engine_src.begin() as conn:
             conn.execute(text(
-                "UPDATE d_ordenes_compra SET total = 1500.00, updated_at = NOW() WHERE id = 1"
+                "UPDATE d_ordenes_compra SET total = 1500.00, updated_at = '2030-01-01 00:00:00' WHERE id = 1"
             ))
         _proc_ordenes_compra(dry_run=False)
 
