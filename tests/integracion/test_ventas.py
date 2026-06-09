@@ -1,34 +1,37 @@
 """
 Tests de integración E2E para ventas.
 
-Flujo: facturas en DB normalizada → ETL (d_facturas, d_facturas_detalle) → asserts en desnormalizada.
+Flujo: facturas en d_* (DB desnormalizada) → ETL (r_facturas, r_facturas_detalle)
+       → asserts en DB resumen.
 """
 from decimal import Decimal
-from tests.helpers.db_helpers import ejecutar_reporte, ejecutar_query
-from db.importar_desnormalizada import importar_tabla
+from tests.helpers.db_helpers import ejecutar_reporte, ejecutar_query, QUERIES_RESUMEN_DIR
+from db.importar_resumen import importar_tabla
 
 
 class TestVentasPorPeriodoIntegracion:
 
     def test_total_enero_tres_facturas(self, dst_conn, seed_facturas):
         """
-        DADO 3 facturas activas en enero en DB normalizada
-        CUANDO el ETL importa d_facturas
-        ENTONCES retorna 3 facturas con total=600.00 en la desnormalizada
+        DADO 3 facturas activas en enero en d_facturas
+        CUANDO el ETL importa r_facturas
+        ENTONCES retorna 3 facturas con total=600.00 en la DB resumen
         """
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_periodo.sql",
-            ("2025-01-01", "2025-01-31", None, None)
+            ("2025-01-01", "2025-01-31", None, None),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         assert len(resultado) == 3
         total = sum(r["total"] for r in resultado)
         assert total == Decimal("600.00")
 
     def test_facturas_anuladas_excluidas(self, dst_conn, seed_facturas):
-        """F-ANU (anulada) existe en d_facturas pero la query la excluye."""
+        """F-ANU (anulada) existe en r_facturas pero la query la excluye."""
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_periodo.sql",
-            ("2025-01-01", "2025-01-31", None, None)
+            ("2025-01-01", "2025-01-31", None, None),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         numeros = [r["numero_factura"] for r in resultado]
         assert "F-ANU" not in numeros
@@ -37,7 +40,8 @@ class TestVentasPorPeriodoIntegracion:
         """Filtrar por sucursal 801 retorna las mismas 3 facturas de enero."""
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_periodo.sql",
-            ("2025-01-01", "2025-01-31", 801, 801)
+            ("2025-01-01", "2025-01-31", 801, 801),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         assert len(resultado) == 3
 
@@ -45,7 +49,8 @@ class TestVentasPorPeriodoIntegracion:
         """F-I04 de febrero no aparece al filtrar solo enero."""
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_periodo.sql",
-            ("2025-01-01", "2025-01-31", None, None)
+            ("2025-01-01", "2025-01-31", None, None),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         numeros = [r["numero_factura"] for r in resultado]
         assert "F-I04" not in numeros
@@ -53,33 +58,36 @@ class TestVentasPorPeriodoIntegracion:
     def test_periodo_sin_facturas_retorna_vacio(self, dst_conn, seed_facturas):
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_periodo.sql",
-            ("2024-01-01", "2024-01-31", None, None)
+            ("2024-01-01", "2024-01-31", None, None),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         assert resultado == []
 
     def test_totales_individuales_correctos(self, dst_conn, seed_facturas):
-        """Cada factura debe tener el total exacto insertado en la normalizada."""
+        """Cada factura debe tener el total exacto insertado en d_facturas."""
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_periodo.sql",
-            ("2025-01-01", "2025-01-31", None, None)
+            ("2025-01-01", "2025-01-31", None, None),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         totales = {r["numero_factura"]: r["total"] for r in resultado}
         assert totales["F-I01"] == Decimal("100.00")
         assert totales["F-I02"] == Decimal("200.00")
         assert totales["F-I03"] == Decimal("300.00")
 
-    def test_etl_excluye_facturas_soft_deleted(self, src_conn, dst_conn, seed_facturas):
+    def test_etl_excluye_soft_deleted(self, src_conn, dst_conn, seed_facturas):
         """El ETL usa WHERE deleted_at IS NULL; re-ejecutar después de soft-delete excluye la factura."""
         cur = src_conn.cursor()
-        cur.execute("UPDATE facturas SET deleted_at = NOW() WHERE id = 801")
+        cur.execute("UPDATE d_facturas SET deleted_at = NOW() WHERE id = 801")
         src_conn.commit()
         cur.close()
 
-        importar_tabla(src_conn, dst_conn, "d_facturas", batch_size=500)
+        importar_tabla(src_conn, dst_conn, "r_facturas", batch_size=500)
 
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_periodo.sql",
-            ("2025-01-01", "2025-01-31", None, None)
+            ("2025-01-01", "2025-01-31", None, None),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         assert len(resultado) == 2
         numeros = [r["numero_factura"] for r in resultado]
@@ -95,7 +103,8 @@ class TestVentasPorProductoIntegracion:
         """
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_producto.sql",
-            ("2025-01-01", "2025-01-31")
+            ("2025-01-01", "2025-01-31"),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         assert len(resultado) == 2
         por_codigo = {r["codigo_producto"]: r for r in resultado}
@@ -109,7 +118,8 @@ class TestVentasPorProductoIntegracion:
         """
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_producto.sql",
-            ("2025-01-01", "2025-01-31")
+            ("2025-01-01", "2025-01-31"),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         for r in resultado:
             assert r["margen_bruto"] == Decimal("150.00")
@@ -117,6 +127,7 @@ class TestVentasPorProductoIntegracion:
     def test_periodo_sin_ventas_retorna_vacio(self, dst_conn, seed_facturas_con_detalle):
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_producto.sql",
-            ("2024-01-01", "2024-01-31")
+            ("2024-01-01", "2024-01-31"),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         assert resultado == []

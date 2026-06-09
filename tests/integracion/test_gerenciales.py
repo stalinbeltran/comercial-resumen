@@ -1,24 +1,25 @@
 """
 Tests de integración E2E para reportes gerenciales.
 
-Flujo: facturas + detalle en DB normalizada → ETL (d_facturas, d_facturas_detalle)
-       → asserts en desnormalizada.
+Flujo: facturas + detalle en d_* (DB desnormalizada) → ETL (r_facturas, r_facturas_detalle)
+       → asserts en DB resumen.
 """
 from decimal import Decimal
-from tests.helpers.db_helpers import ejecutar_reporte, ejecutar_query
+from tests.helpers.db_helpers import ejecutar_reporte, ejecutar_query, QUERIES_RESUMEN_DIR
 
 
 class TestTopProductosIntegracion:
 
     def test_top_1_es_producto_con_mayor_cantidad(self, dst_conn, seed_ventas_gerencial):
         """
-        DADO prod 801 con 100 und y prod 802 con 30 und
-        CUANDO el ETL importa d_facturas_detalle y se pide top 1
+        DADO prod 801 con 100 und y prod 802 con 30 und en d_facturas_detalle
+        CUANDO el ETL importa r_facturas_detalle y se pide top 1
         ENTONCES solo aparece prod 801
         """
         resultado = ejecutar_reporte(
             dst_conn, "top_productos_vendidos.sql",
-            ("2025-01-01", "2025-01-31", 1)
+            ("2025-01-01", "2025-01-31", 1),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         assert len(resultado) == 1
         assert resultado[0]["codigo_producto"] == "PROD-I01"
@@ -27,7 +28,8 @@ class TestTopProductosIntegracion:
         """Top 2: prod 801 primero (mayor unidades), prod 802 segundo."""
         resultado = ejecutar_reporte(
             dst_conn, "top_productos_vendidos.sql",
-            ("2025-01-01", "2025-01-31", 2)
+            ("2025-01-01", "2025-01-31", 2),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         assert len(resultado) == 2
         assert resultado[0]["codigo_producto"] == "PROD-I01"
@@ -36,7 +38,8 @@ class TestTopProductosIntegracion:
     def test_totales_de_unidades_correctos(self, dst_conn, seed_ventas_gerencial):
         resultado = ejecutar_reporte(
             dst_conn, "top_productos_vendidos.sql",
-            ("2025-01-01", "2025-01-31", 10)
+            ("2025-01-01", "2025-01-31", 10),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         por_codigo = {r["codigo_producto"]: r for r in resultado}
         assert por_codigo["PROD-I01"]["total_unidades"] == Decimal("100.0000")
@@ -45,7 +48,8 @@ class TestTopProductosIntegracion:
     def test_totales_de_venta_correctos(self, dst_conn, seed_ventas_gerencial):
         resultado = ejecutar_reporte(
             dst_conn, "top_productos_vendidos.sql",
-            ("2025-01-01", "2025-01-31", 10)
+            ("2025-01-01", "2025-01-31", 10),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         por_codigo = {r["codigo_producto"]: r for r in resultado}
         assert por_codigo["PROD-I01"]["total_venta"] == Decimal("2000.00")
@@ -54,7 +58,8 @@ class TestTopProductosIntegracion:
     def test_periodo_sin_ventas_retorna_vacio(self, dst_conn, seed_ventas_gerencial):
         resultado = ejecutar_reporte(
             dst_conn, "top_productos_vendidos.sql",
-            ("2023-01-01", "2023-01-31", 10)
+            ("2023-01-01", "2023-01-31", 10),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         assert resultado == []
 
@@ -64,11 +69,11 @@ class TestComparativoPeriodosIntegracion:
     def test_enero_mayor_que_diciembre(self, dst_conn, seed_ventas_gerencial):
         """
         Enero 2025: $2600 vs Diciembre 2024: $1000.
-        Consulta sobre d_facturas (ETL ya importó ambas facturas).
+        Consulta sobre r_facturas (ETL ya importó ambas facturas).
         """
         sql = """
             SELECT SUM(total) AS total
-            FROM d_facturas
+            FROM r_facturas
             WHERE deleted_at IS NULL
               AND estado <> 'anulada'
               AND fecha_emision BETWEEN %s AND %s
@@ -80,7 +85,7 @@ class TestComparativoPeriodosIntegracion:
     def test_totales_por_periodo(self, dst_conn, seed_ventas_gerencial):
         sql = """
             SELECT SUM(total) AS total
-            FROM d_facturas
+            FROM r_facturas
             WHERE deleted_at IS NULL
               AND estado <> 'anulada'
               AND fecha_emision BETWEEN %s AND %s
@@ -100,7 +105,8 @@ class TestMargenBrutoIntegracion:
         """
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_producto.sql",
-            ("2025-01-01", "2025-01-31")
+            ("2025-01-01", "2025-01-31"),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         por_codigo = {r["codigo_producto"]: r for r in resultado}
         assert por_codigo["PROD-I01"]["margen_bruto"] == Decimal("1200.00")
@@ -109,7 +115,8 @@ class TestMargenBrutoIntegracion:
     def test_margen_positivo_en_todos_los_productos(self, dst_conn, seed_ventas_gerencial):
         resultado = ejecutar_reporte(
             dst_conn, "ventas_por_producto.sql",
-            ("2025-01-01", "2025-01-31")
+            ("2025-01-01", "2025-01-31"),
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
         for r in resultado:
             assert r["margen_bruto"] > 0

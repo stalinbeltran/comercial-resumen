@@ -1,11 +1,12 @@
 """
 Tests de integración E2E para tesorería.
 
-Flujo: facturas en DB normalizada → ETL (d_facturas) → asserts de CxC en desnormalizada.
+Flujo: facturas en d_facturas (DB desnormalizada) → ETL (r_facturas)
+       → asserts de CxC en DB resumen.
 """
 from decimal import Decimal
-from tests.helpers.db_helpers import ejecutar_reporte, ejecutar_query
-from db.importar_desnormalizada import importar_tabla
+from tests.helpers.db_helpers import ejecutar_reporte, ejecutar_query, QUERIES_RESUMEN_DIR
+from db.importar_resumen import importar_tabla
 
 
 class TestCuentasPorCobrarIntegracion:
@@ -14,11 +15,12 @@ class TestCuentasPorCobrarIntegracion:
     def _run(self, dst_conn):
         return ejecutar_reporte(
             dst_conn, "cuentas_por_cobrar.sql",
-            (self.FECHA_CORTE,) * 6
+            (self.FECHA_CORTE,) * 6,
+            queries_dir=QUERIES_RESUMEN_DIR,
         )
 
     def test_excluye_facturas_pagadas(self, dst_conn, seed_cxc):
-        """F-PAG (estado=pagada, saldo=0) no debe aparecer en d_facturas tras el ETL."""
+        """F-PAG (estado=pagada, saldo=0) no debe aparecer: excluida por saldo=0."""
         resultado = self._run(dst_conn)
         numeros = [r["numero"] for r in resultado]
         assert "F-PAG" not in numeros
@@ -54,19 +56,19 @@ class TestCuentasPorCobrarIntegracion:
         assert por_numero["F-MAS"]["rango_antiguedad"] == "+90"
 
     def test_saldo_correcto(self, dst_conn, seed_cxc):
-        """El saldo importado por el ETL debe coincidir con el de la normalizada."""
+        """El saldo importado por el ETL debe coincidir con el de d_facturas."""
         por_numero = {r["numero"]: r for r in self._run(dst_conn)}
         assert por_numero["F-VIG"]["saldo"] == Decimal("500.00")
         assert por_numero["F-MAS"]["saldo"] == Decimal("100.00")
 
-    def test_etl_excluye_facturas_soft_deleted(self, src_conn, dst_conn, seed_cxc):
-        """Re-ejecutar el ETL tras soft-delete en normalizada excluye la factura de d_facturas."""
+    def test_etl_excluye_soft_deleted(self, src_conn, dst_conn, seed_cxc):
+        """Re-ejecutar el ETL tras soft-delete en d_facturas excluye la factura de r_facturas."""
         cur = src_conn.cursor()
-        cur.execute("UPDATE facturas SET deleted_at = NOW() WHERE id = 801")
+        cur.execute("UPDATE d_facturas SET deleted_at = NOW() WHERE id = 801")
         src_conn.commit()
         cur.close()
 
-        importar_tabla(src_conn, dst_conn, "d_facturas", batch_size=500)
+        importar_tabla(src_conn, dst_conn, "r_facturas", batch_size=500)
 
         resultado = self._run(dst_conn)
         numeros = [r["numero"] for r in resultado]

@@ -4,10 +4,13 @@ import mysql.connector
 
 
 QUERIES_DIR = os.path.join(os.path.dirname(__file__), "..", "queries")
+QUERIES_RESUMEN_DIR = os.path.join(os.path.dirname(__file__), "..", "queries_resumen")
 
 
-def load_sql(filename: str) -> str:
-    path = os.path.join(QUERIES_DIR, filename)
+def load_sql(filename: str, queries_dir: str = None) -> str:
+    if queries_dir is None:
+        queries_dir = QUERIES_DIR
+    path = os.path.join(queries_dir, filename)
     with open(path, encoding="utf-8") as f:
         return f.read()
 
@@ -20,8 +23,8 @@ def ejecutar_query(conn, sql: str, params: tuple = ()) -> list[dict]:
     return rows
 
 
-def ejecutar_reporte(conn, nombre_archivo: str, params: tuple = ()) -> list[dict]:
-    sql = load_sql(nombre_archivo)
+def ejecutar_reporte(conn, nombre_archivo: str, params: tuple = (), queries_dir: str = None) -> list[dict]:
+    sql = load_sql(nombre_archivo, queries_dir)
     return ejecutar_query(conn, sql, params)
 
 
