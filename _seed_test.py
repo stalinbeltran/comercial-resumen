@@ -68,8 +68,7 @@ for tid, num, rs in [(1,'1790000001001','Cliente ABC'),(2,'1790000002001','Clien
         cur.execute("INSERT INTO terceros (id,id_tipo_identificacion,numero_identificacion,razon_social,estado) VALUES (%s,1,%s,%s,1)",(tid,num,rs))
 
 for ttid, terc, tipo in [(1,1,'cliente'),(2,2,'cliente'),(3,3,'proveedor')]:
-    cur.execute("SELECT COUNT(*) FROM terceros_tipos WHERE id_tercero=%s AND tipo=%s",(terc,tipo))
-    if cur.fetchone()[0] == 0:
+    if not existe("terceros_tipos", ttid):
         cur.execute("INSERT INTO terceros_tipos (id,id_tercero,tipo) VALUES (%s,%s,%s)",(ttid,terc,tipo))
 
 # Movimientos de inventario

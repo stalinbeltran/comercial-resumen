@@ -112,7 +112,7 @@ def seed_terceros(db_connection):
     cur = db_connection.cursor()
     cur.execute("""
         INSERT INTO tipos_identificacion (id, nombre, codigo)
-        VALUES (901, 'RUC Test', 'RUC')
+        VALUES (901, 'RUC Test', 'RUC-T')
     """)
     cur.execute("""
         INSERT INTO terceros (id, id_tipo_identificacion, numero_identificacion,
