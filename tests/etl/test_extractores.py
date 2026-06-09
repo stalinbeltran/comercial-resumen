@@ -84,7 +84,7 @@ class TestLeerFacturas:
         assert total == 1
 
     def test_columna_id_factura_orig_presente(self, engine_src, patch_engines):
-        insertar_d_facturas(engine_src, [{**FACTURA_BASE, "id": 5}])
+        insertar_d_facturas(engine_src, [{**FACTURA_BASE, "id": 5, "id_factura_orig": 5}])
         chunks = list(ext.leer_facturas("1900-01-01 00:00:00"))
         df = chunks[0]
         assert "id_factura_orig" in df.columns
@@ -142,7 +142,7 @@ class TestLeerOrdenesCompra:
         assert total == 1
 
     def test_columna_id_orden_orig_presente(self, engine_src, patch_engines):
-        insertar_d_ordenes(engine_src, [{**ORDEN_BASE, "id": 7}])
+        insertar_d_ordenes(engine_src, [{**ORDEN_BASE, "id": 7, "id_orden_orig": 7}])
         chunks = list(ext.leer_ordenes_compra("1900-01-01 00:00:00"))
         df = chunks[0]
         assert "id_orden_orig" in df.columns

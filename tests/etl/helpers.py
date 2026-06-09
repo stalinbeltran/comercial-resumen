@@ -29,14 +29,17 @@ INVENTARIO_BASE = dict(
 )
 
 MOVIMIENTO_BASE = dict(
+    id_movimiento_orig=1,
     id_producto=1, codigo_producto="P001", nombre_producto="Laptop",
     id_bodega=1, bodega="Bodega Principal",
+    fecha="2026-01-15 10:00:00",
     tipo_movimiento="entrada",
     cantidad=10, cantidad_anterior=0, cantidad_posterior=10,
     costo_unitario=800.00,
 )
 
 FACTURA_BASE = dict(
+    id_factura_orig=1,
     numero_factura="F-001",
     fecha_emision="2026-01-15", fecha_vencimiento="2026-02-14",
     id_sucursal=1, sucursal="Sucursal Centro",
@@ -55,6 +58,7 @@ DETALLE_BASE = dict(
 )
 
 ORDEN_BASE = dict(
+    id_orden_orig=1,
     id_proveedor=1, proveedor="Proveedor MNO",
     fecha_emision="2026-01-10",
     estado="recibida", total=5000.00,
@@ -82,11 +86,11 @@ def insertar_d_inventario(engine, filas: list[dict]) -> None:
 def insertar_d_movimientos(engine, filas: list[dict]) -> None:
     sql = text(
         "INSERT INTO d_movimientos_inventario "
-        "(id_producto, codigo_producto, nombre_producto, "
-        " id_bodega, bodega, tipo_movimiento, "
+        "(id_movimiento_orig, id_producto, codigo_producto, nombre_producto, "
+        " id_bodega, bodega, fecha, tipo_movimiento, "
         " cantidad, cantidad_anterior, cantidad_posterior, costo_unitario) "
-        "VALUES (:id_producto, :codigo_producto, :nombre_producto, "
-        "        :id_bodega, :bodega, :tipo_movimiento, "
+        "VALUES (:id_movimiento_orig, :id_producto, :codigo_producto, :nombre_producto, "
+        "        :id_bodega, :bodega, :fecha, :tipo_movimiento, "
         "        :cantidad, :cantidad_anterior, :cantidad_posterior, :costo_unitario)"
     )
     with engine.begin() as conn:
@@ -96,10 +100,10 @@ def insertar_d_movimientos(engine, filas: list[dict]) -> None:
 def insertar_d_facturas(engine, filas: list[dict]) -> None:
     sql = text(
         "INSERT INTO d_facturas "
-        "(id, numero_factura, fecha_emision, fecha_vencimiento, "
+        "(id, id_factura_orig, numero_factura, fecha_emision, fecha_vencimiento, "
         " id_sucursal, sucursal, id_cliente, cliente, "
         " subtotal, descuento, impuesto, total, saldo, estado) "
-        "VALUES (:id, :numero_factura, :fecha_emision, :fecha_vencimiento, "
+        "VALUES (:id, :id_factura_orig, :numero_factura, :fecha_emision, :fecha_vencimiento, "
         "        :id_sucursal, :sucursal, :id_cliente, :cliente, "
         "        :subtotal, :descuento, :impuesto, :total, :saldo, :estado)"
     )
@@ -124,8 +128,8 @@ def insertar_d_detalle(engine, filas: list[dict]) -> None:
 def insertar_d_ordenes(engine, filas: list[dict]) -> None:
     sql = text(
         "INSERT INTO d_ordenes_compra "
-        "(id, id_proveedor, proveedor, fecha_emision, estado, total) "
-        "VALUES (:id, :id_proveedor, :proveedor, :fecha_emision, :estado, :total)"
+        "(id, id_orden_orig, id_proveedor, proveedor, fecha_emision, estado, total) "
+        "VALUES (:id, :id_orden_orig, :id_proveedor, :proveedor, :fecha_emision, :estado, :total)"
     )
     with engine.begin() as conn:
         conn.execute(sql, filas)
